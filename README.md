@@ -1,6 +1,6 @@
 
 <!--START_SECTION:waka-->
-- `Java`  ◉◉◉◉◉◉◉◉◉◉  99.26%
-- `Markdown`  ◉◯◯◯◯◯◯◯◯◯  0.42%
-- `XML`  ◉◯◯◯◯◯◯◯◯◯  0.32%
+- `Java`  ◉◉◉◉◉◉◉◉◉◉  1h 29m
+- `Markdown`  ◉◯◯◯◯◯◯◯◯◯  0h 0m
+- `XML`  ◉◯◯◯◯◯◯◯◯◯  0h 0m
 <!--END_SECTION:waka-->
