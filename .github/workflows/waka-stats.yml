@@ -2,29 +2,97 @@ name: WakaTime
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
-  update-readme:
+  update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write 
+      contents: write
     
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  
+          token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Update WakaTime Stats
-        uses: anmol098/waka-readme-stats@master
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-
+          python-version: '3.10'
+      
+      - name: Get WakaTime Stats
+        env:
           WAKATIME_API_KEY: ${{ secrets.WAKATIME_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+        run: |
+          cat > get_waka_stats.py << 'EOF'
+import os
+import requests
+import base64
+from datetime import datetime
 
-          SHOW_LANGUAGE: "true"
-          SHOW_TITLE: "false"
-          SHOW_EDITORS: "false"
-          SHOW_OS: "false"
-          SHOW_PROJECTS: "false"
+API_KEY = os.getenv('WAKATIME_API_KEY')
+HEADERS = {'Authorization': f'Basic {base64.b64encode(API_KEY.encode()).decode()}'}
+
+def get_stats():
+    try:
+        response = requests.get('https://wakatime.com/api/v1/users/current/stats/last_7_days', headers=HEADERS)
+        data = response.json()
+        return data.get('data')
+    except:
+        return None
+
+def format_stats(stats):
+    if not stats or 'languages' not in stats:
+        return "No data available\n"
+    
+    total_hours = stats.get('total_seconds', 0) / 3600
+    
+    markdown = f"**Total time:** {total_hours:.1f} hours\n\n"
+    markdown += "**Top languages:**\n\n"
+    
+    languages = stats['languages'][:8]
+    
+    for lang in languages:
+        name = lang['name']
+        hours = lang['total_seconds'] / 3600
+        percent = lang['percent']
+        
+        bar_length = 20
+        filled = int(bar_length * percent / 100)
+        bar = '█' * filled + '░' * (bar_length - filled)
+        
+        markdown += f"- `{name}`: {hours:.1f}h {bar} {percent:.1f}%\n"
+    
+    markdown += f"\n*Updated: {datetime.now().strftime("%d.%m.%Y %H:%M")}*"
+    return markdown
+
+stats = get_stats()
+if stats:
+    output = format_stats(stats)
+    with open('waka_stats.md', 'w') as f:
+        f.write(output)
+else:
+    with open('waka_stats.md', 'w') as f:
+        f.write("Failed to load WakaTime data")
+          EOF
           
+          python get_waka_stats.py
+      
+      - name: Update README
+        run: |
+          WAKA_CONTENT=$(cat waka_stats.md)
+          
+          if grep -q "<!--START_SECTION:waka-->" README.md; then
+            sed -i '/<!--START_SECTION:waka-->/,/<!--END_SECTION:waka-->/c\<!--START_SECTION:waka-->\n'"$WAKA_CONTENT"'\n<!--END_SECTION:waka-->' README.md
+          else
+            echo -e "\n<!--START_SECTION:waka-->\n$WAKA_CONTENT\n<!--END_SECTION:waka-->" >> README.md
+          fi
+      
+      - name: Commit and Push
+        run: |
+          git config --local user.email "github-actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add README.md
+          git commit -m "Update WakaTime stats"
+          git push
