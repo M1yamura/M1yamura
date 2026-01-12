@@ -1,4 +1,4 @@
-name: WakaTime Profile Stats
+name: Stats
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ jobs:
             https://wakatime.com/api/v1/users/current/stats/all_time \
             > waka.json
 
-            - name: Generate language wheel
+      - name: Generate language wheel
         run: |
           : > waka.md
 
