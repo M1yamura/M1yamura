@@ -30,8 +30,12 @@ jobs:
 
           jq -r '
             (.data.languages // [])
-            | sort_by(-.percent)
+            | sort_by(-.total_seconds)
+            | .[:6]
             | .[]
+            | .total_seconds as $s
+            | ($s / 3600 | floor) as $h
+            | (($s % 3600) / 60 | floor) as $m
             | .percent as $p
             | (
                 if   $p >= 90 then "◉◉◉◉◉◉◉◉◉◉"
@@ -46,8 +50,9 @@ jobs:
                 else              "◉◯◯◯◯◯◯◯◯◯"
                 end
               ) as $wheel
-            | "- `\(.name)`  \($wheel)  \(.percent)%"
+            | "- `\(.name)`  \($wheel)  \($h)h \($m)m"
           ' waka.json >> waka.md
+
 
 
       - name: Update README
