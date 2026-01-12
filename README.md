@@ -1,7 +1,6 @@
 
 <!--START_SECTION:waka-->
-**Last 7 days**
-
-
-_Updated: 12.01.2026 14:59_
+- `Java`  ◉◉◉◉◉◉◉◉◉◉  99.26%
+- `Markdown`  ◉◯◯◯◯◯◯◯◯◯  0.42%
+- `XML`  ◉◯◯◯◯◯◯◯◯◯  0.32%
 <!--END_SECTION:waka-->
