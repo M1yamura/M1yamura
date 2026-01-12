@@ -24,13 +24,12 @@ jobs:
             https://wakatime.com/api/v1/users/current/stats/all_time \
             > waka.json
 
-      - name: Generate language wheel
+            - name: Generate language wheel
         run: |
-          echo "" > waka.md
+          : > waka.md
 
           jq -r '
-            if .data == null then empty else
-            .data.languages
+            (.data.languages // [])
             | sort_by(-.percent)
             | .[]
             | .percent as $p
@@ -49,6 +48,7 @@ jobs:
               ) as $wheel
             | "- `\(.name)`  \($wheel)  \(.percent)%"
           ' waka.json >> waka.md
+
 
       - name: Update README
         run: |
