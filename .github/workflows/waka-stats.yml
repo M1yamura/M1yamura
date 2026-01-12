@@ -5,94 +5,61 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
+permissions:
+  contents: write
+
 jobs:
-  update:
+  update-waka:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
+
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      
-      - name: Get WakaTime Stats
+
+      - name: Fetch WakaTime stats
         env:
           WAKATIME_API_KEY: ${{ secrets.WAKATIME_API_KEY }}
         run: |
-          cat > get_waka_stats.py << 'EOF'
-import os
-import requests
-import base64
-from datetime import datetime
+          curl -s \
+            -H "Authorization: Basic $(echo -n $WAKATIME_API_KEY | base64)" \
+            https://wakatime.com/api/v1/users/current/stats/last_7_days \
+            > waka.json
 
-API_KEY = os.getenv('WAKATIME_API_KEY')
-HEADERS = {'Authorization': f'Basic {base64.b64encode(API_KEY.encode()).decode()}'}
+      - name: Generate markdown
+        run: |
+          echo "**Last 7 days**" > waka.md
+          echo "" >> waka.md
 
-def get_stats():
-    try:
-        response = requests.get('https://wakatime.com/api/v1/users/current/stats/last_7_days', headers=HEADERS)
-        data = response.json()
-        return data.get('data')
-    except:
-        return None
+          jq -r '
+            .data.languages[] |
+            "- `\(.name)`: \((.total_seconds/3600)|round(.1))h (\(.percent)%)"
+          ' waka.json | head -n 8 >> waka.md
 
-def format_stats(stats):
-    if not stats or 'languages' not in stats:
-        return "No data available\n"
-    
-    total_hours = stats.get('total_seconds', 0) / 3600
-    
-    markdown = f"**Total time:** {total_hours:.1f} hours\n\n"
-    markdown += "**Top languages:**\n\n"
-    
-    languages = stats['languages'][:8]
-    
-    for lang in languages:
-        name = lang['name']
-        hours = lang['total_seconds'] / 3600
-        percent = lang['percent']
-        
-        bar_length = 20
-        filled = int(bar_length * percent / 100)
-        bar = '█' * filled + '░' * (bar_length - filled)
-        
-        markdown += f"- `{name}`: {hours:.1f}h {bar} {percent:.1f}%\n"
-    
-    markdown += f"\n*Updated: {datetime.now().strftime("%d.%m.%Y %H:%M")}*"
-    return markdown
+          echo "" >> waka.md
+          echo "_Updated: $(date +"%d.%m.%Y %H:%M")_" >> waka.md
 
-stats = get_stats()
-if stats:
-    output = format_stats(stats)
-    with open('waka_stats.md', 'w') as f:
-        f.write(output)
-else:
-    with open('waka_stats.md', 'w') as f:
-        f.write("Failed to load WakaTime data")
-          EOF
-          
-          python get_waka_stats.py
-      
       - name: Update README
         run: |
-          WAKA_CONTENT=$(cat waka_stats.md)
-          
-          if grep -q "<!--START_SECTION:waka-->" README.md; then
-            sed -i '/<!--START_SECTION:waka-->/,/<!--END_SECTION:waka-->/c\<!--START_SECTION:waka-->\n'"$WAKA_CONTENT"'\n<!--END_SECTION:waka-->' README.md
-          else
-            echo -e "\n<!--START_SECTION:waka-->\n$WAKA_CONTENT\n<!--END_SECTION:waka-->" >> README.md
-          fi
-      
-      - name: Commit and Push
+          awk '
+            BEGIN {print_mode=1}
+            /<!--START_SECTION:waka-->/ {
+              print
+              system("cat waka.md")
+              print_mode=0
+            }
+            /<!--END_SECTION:waka-->/ {
+              print
+              print_mode=1
+              next
+            }
+            print_mode==1 {print}
+          ' README.md > README.tmp
+
+          mv README.tmp README.md
+
+      - name: Commit and push
         run: |
-          git config --local user.email "github-actions@github.com"
-          git config --local user.name "GitHub Actions"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
           git add README.md
-          git commit -m "Update WakaTime stats"
+          git commit -m "Update WakaTime stats" || exit 0
           git push
