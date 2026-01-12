@@ -1,4 +1,4 @@
-name: WakaTime
+name: WakaTime Profile Stats
 
 on:
   workflow_dispatch:
@@ -15,43 +15,56 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch WakaTime stats
+      - name: Fetch WakaTime ALL TIME stats
         env:
           WAKATIME_API_KEY: ${{ secrets.WAKATIME_API_KEY }}
         run: |
           curl -s \
             -H "Authorization: Basic $(echo -n $WAKATIME_API_KEY | base64)" \
-            https://wakatime.com/api/v1/users/current/stats/last_7_days \
+            https://wakatime.com/api/v1/users/current/stats/all_time \
             > waka.json
 
-      - name: Generate markdown
+      - name: Generate language wheel
         run: |
-          echo "**Last 7 days**" > waka.md
-          echo "" >> waka.md
+          echo "" > waka.md
 
           jq -r '
-            .data.languages[] |
-            "- `\(.name)`: \((.total_seconds/3600)|round(.1))h (\(.percent)%)"
-          ' waka.json | head -n 8 >> waka.md
-
-          echo "" >> waka.md
-          echo "_Updated: $(date +"%d.%m.%Y %H:%M")_" >> waka.md
+            if .data == null then empty else
+            .data.languages
+            | sort_by(-.percent)
+            | .[]
+            | .percent as $p
+            | (
+                if   $p >= 90 then "◉◉◉◉◉◉◉◉◉◉"
+                elif $p >= 80 then "◉◉◉◉◉◉◉◉◉◯"
+                elif $p >= 70 then "◉◉◉◉◉◉◉◉◯◯"
+                elif $p >= 60 then "◉◉◉◉◉◉◉◯◯◯"
+                elif $p >= 50 then "◉◉◉◉◉◉◯◯◯◯"
+                elif $p >= 40 then "◉◉◉◉◉◯◯◯◯◯"
+                elif $p >= 30 then "◉◉◉◉◯◯◯◯◯◯"
+                elif $p >= 20 then "◉◉◉◯◯◯◯◯◯◯"
+                elif $p >= 10 then "◉◉◯◯◯◯◯◯◯◯"
+                else              "◉◯◯◯◯◯◯◯◯◯"
+                end
+              ) as $wheel
+            | "- `\(.name)`  \($wheel)  \(.percent)%"
+          ' waka.json >> waka.md
 
       - name: Update README
         run: |
           awk '
-            BEGIN {print_mode=1}
+            BEGIN {keep=1}
             /<!--START_SECTION:waka-->/ {
               print
               system("cat waka.md")
-              print_mode=0
+              keep=0
             }
             /<!--END_SECTION:waka-->/ {
               print
-              print_mode=1
+              keep=1
               next
             }
-            print_mode==1 {print}
+            keep==1 {print}
           ' README.md > README.tmp
 
           mv README.tmp README.md
