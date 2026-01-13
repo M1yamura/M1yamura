@@ -1,5 +1,5 @@
 <!-- comment text --> <table align="center">
-  <tr>
+ <!-- comment text --> <tr>
     <td align="center" width="150">
       <img src="https://i.pinimg.com/736x/ba/87/50/ba8750a22f0b89aefa39dc1ee182ccdb.jpg" width="120" />
 <!-- comment text -->     </td>
