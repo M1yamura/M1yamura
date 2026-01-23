@@ -31,7 +31,7 @@ jobs:
           jq -r '
             (.data.languages // [])
             | sort_by(-.total_seconds)
-            | .[:6]
+            | .[:3]
             | .[]
             | .total_seconds as $s
             | ($s / 3600 | floor) as $h
