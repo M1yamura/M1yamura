@@ -1,6 +1,6 @@
 
 <!--START_SECTION:waka-->
-- `Java`  ◉◉◉◉◉◉◉◉◯◯  35h 18m
-- `XML`  ◉◉◯◯◯◯◯◯◯◯  4h 43m
+- `Java`  ◉◉◉◉◉◉◉◉◯◯  35h 39m
+- `XML`  ◉◉◯◯◯◯◯◯◯◯  4h 55m
 - `HTML`  ◉◯◯◯◯◯◯◯◯◯  3h 23m
 <!--END_SECTION:waka-->
