@@ -42,7 +42,7 @@ jobs:
           jq -r '
             .data.languages
             | sort_by(-.total_seconds)
-            | .[:3]
+            | .[:5]
             | .[]
             | .total_seconds as $s
 
