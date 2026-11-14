@@ -11,7 +11,6 @@ permissions:
 jobs:
   update-waka:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -19,21 +18,34 @@ jobs:
         env:
           WAKATIME_API_KEY: ${{ secrets.WAKATIME_API_KEY }}
         run: |
-          curl -s \
-            -H "Authorization: Basic $(echo -n $WAKATIME_API_KEY | base64)" \
-            https://wakatime.com/api/v1/users/current/stats/all_time \
-            > waka.json
+          AUTH=$(printf "%s" "$WAKATIME_API_KEY" | base64 -w 0)
+          for i in {1..5}; do
+            HTTP_CODE=$(curl -s -w "%{http_code}" -o waka.json \
+              -H "Authorization: Basic $AUTH" \
+              "https://wakatime.com/api/v1/users/current/stats/all_time")
+            
+            if [ "$HTTP_CODE" -eq 200 ] && jq -e '.data.languages | length > 0' waka.json > /dev/null; then
+              echo "Stats fetched successfully"
+              exit 0
+            fi
+            
+            echo "Status: $HTTP_CODE. Waiting for WakaTime to calculate stats (attempt $i/5)..."
+            sleep 15
+          done
+          echo "Failed to fetch valid stats after 5 attempts"
+          cat waka.json
+          exit 1
 
       - name: Generate language wheel
         run: |
           : > waka.md
-
           jq -r '
-            (.data.languages // [])
+            .data.languages
             | sort_by(-.total_seconds)
             | .[:3]
             | .[]
             | .total_seconds as $s
+
             | ($s / 3600 | floor) as $h
             | (($s % 3600) / 60 | floor) as $m
             | .percent as $p
@@ -47,13 +59,11 @@ jobs:
                 elif $p >= 30 then "◉◉◉◉◯◯◯◯◯◯"
                 elif $p >= 20 then "◉◉◉◯◯◯◯◯◯◯"
                 elif $p >= 10 then "◉◉◯◯◯◯◯◯◯◯"
-                else              "◉◯◯◯◯◯◯◯◯◯"
+                else               "◉◯◯◯◯◯◯◯◯◯"
                 end
               ) as $wheel
-            | "- `\(.name)`  \($wheel)  \($h)h \($m)m"
+            | "- `\(.name)` \($wheel) \($h)h \($m)m"
           ' waka.json >> waka.md
-
-
 
       - name: Update README
         run: |
@@ -61,8 +71,10 @@ jobs:
             BEGIN {keep=1}
             /<!--START_SECTION:waka-->/ {
               print
-              system("cat waka.md")
+              while ((getline line < "waka.md") > 0) print line
+              close("waka.md")
               keep=0
+              next
             }
             /<!--END_SECTION:waka-->/ {
               print
@@ -71,13 +83,12 @@ jobs:
             }
             keep==1 {print}
           ' README.md > README.tmp
-
           mv README.tmp README.md
 
       - name: Commit and push
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "Update WakaTime stats" || exit 0
+          git diff --staged --quiet || git commit -m "Update WakaTime stats"
           git push
