@@ -1,5 +1,4 @@
-![ㅤㅤㅤ](./ㅤㅤㅤㅤㅤ.gif)
-
+<img align="right" width="380" src="https://github.com/M1yamura/M1yamura/blob/main/%E3%85%A4%E3%85%A4%E3%85%A4%E3%85%A4%E3%85%A4.gif?raw=true" />
 
 <!--START_SECTION:waka-->
 - `Java` ◉◉◉◉◉◉◉◉◯◯ 45h 47m
