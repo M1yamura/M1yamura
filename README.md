@@ -1,4 +1,4 @@
-
+<img align="right" width="300" src="https://github.com" alt="Демонстрация">
 <!--START_SECTION:waka-->
 - `Java` ◉◉◉◉◉◉◉◉◯◯ 45h 47m
 - `XML` ◉◯◯◯◯◯◯◯◯◯ 5h 48m
